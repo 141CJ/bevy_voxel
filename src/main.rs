@@ -29,10 +29,6 @@ impl Chunk {
             height,
         }
     }
-    // Converts XYZ coordinates to flat vector coordinates
-    fn index(&self, x: usize, y: usize, z: usize) -> usize {
-        x + (y * self.length) + (z * self.height * self.height)
-    }
 
     fn get(&self, x: usize, y: usize, z: usize) -> Option<&BlockType> {
         self.blocks.get((x, y, z))
