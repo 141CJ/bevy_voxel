@@ -2,11 +2,13 @@ use bevy::{
     camera_controller::free_camera::FreeCameraPlugin,
     dev_tools::fps_overlay::{FpsOverlayConfig, FpsOverlayPlugin},
     prelude::*,
+    state::commands,
 };
+use ndarray::Array3;
 
 mod freecam;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum BlockType {
     Air,
     Grass,
@@ -16,13 +18,13 @@ enum BlockType {
 struct Chunk {
     length: usize,
     height: usize,
-    blocks: Vec<BlockType>,
+    blocks: Array3<BlockType>,
 }
 
 impl Chunk {
     fn new(length: usize, height: usize) -> Self {
         Chunk {
-            blocks: vec![BlockType::Air; length * height * length],
+            blocks: Array3::from_elem((length, height, length), BlockType::Air),
             length,
             height,
         }
@@ -32,13 +34,14 @@ impl Chunk {
         x + (y * self.length) + (z * self.height * self.height)
     }
 
-    fn get(&self, x: usize, y: usize, z: usize) -> BlockType {
-        self.blocks[self.index(x, y, z)]
+    fn get(&self, x: usize, y: usize, z: usize) -> Option<&BlockType> {
+        self.blocks.get((x, y, z))
     }
 
     fn set(&mut self, x: usize, y: usize, z: usize, block: BlockType) {
-        let pos = self.index(x, y, z);
-        self.blocks[pos] = block;
+        if let Some(cell) = self.blocks.get_mut((x, y, z)) {
+            *cell = block;
+        }
     }
 }
 
@@ -60,37 +63,34 @@ fn main() {
             },
         })
         .add_plugins(FreeCameraPlugin)
-        .add_systems(Startup, scene.spawn())
+        .add_systems(Startup, scene)
         .add_systems(Update, overlay_config)
         .add_plugins(freecam::FreeCam)
         .run();
 }
 
-fn scene() -> impl SceneList {
-    bsn_list! [
-        (
-            #CircularBase
-            Mesh3d(asset_value(Circle::new(4.0)))
-            MeshMaterial3d::<StandardMaterial>(asset_value(Color::WHITE))
-            Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2))
-        ),
-        (
-            #Cube
-            Mesh3d(asset_value(Cuboid::new(1.0, 1.0, 1.0)))
-            MeshMaterial3d::<StandardMaterial>(asset_value(Color::srgb_u8(0, 255, 0)))
-            Transform::from_xyz(0.0, 0.5, 0.0)
-        ),
-        (
-            PointLight {
-                shadow_maps_enabled: true,
-            }
-            Transform::from_xyz(4.0, 8.0, 4.0)
-        ),
-        (
-            // Camera3d
-            // template_value(Transform::from_xyz(-2.5, 4.5, 9.0).looking_at(Vec3::ZERO, Vec3::Y))
-        )
-    ]
+fn scene(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let mut chunk = Chunk::new(16, 64);
+    draw_chunk(commands, meshes, materials, &chunk);
+}
+
+fn draw_chunk(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    chunk: &Chunk,
+) {
+    for ((x, y, z), &block) in chunk.blocks.indexed_iter() {
+        commands.spawn((
+            Mesh3d(meshes.add(Cuboid::default())),
+            MeshMaterial3d(materials.add(Color::srgb_u8(0, 255, 0))),
+            Transform::from_xyz(x as f32, y as f32, z as f32),
+        ));
+    }
 }
 
 fn overlay_config(input: Res<ButtonInput<KeyCode>>, mut overlay: ResMut<FpsOverlayConfig>) {
