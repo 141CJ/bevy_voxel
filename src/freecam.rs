@@ -22,8 +22,8 @@ fn spawn_camera(mut commands: Commands) {
         FreeCamera {
             sensitivity: 0.2,
             friction: 25.,
-            walk_speed: 3.,
-            run_speed: 9.,
+            walk_speed: 10.,
+            run_speed: 20.,
             ..default()
         },
     ));

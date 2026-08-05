@@ -5,10 +5,11 @@ use bevy::{
     state::commands,
 };
 use ndarray::Array3;
+use noise::{NoiseFn, Perlin};
 
 mod freecam;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum BlockType {
     Air,
     Grass,
@@ -19,14 +20,40 @@ struct Chunk {
     length: usize,
     height: usize,
     blocks: Array3<BlockType>,
+    scale: f64, // Noise scale
+    amp: f64,   // Noise amplitude
+    noise: Perlin,
 }
 
 impl Chunk {
-    fn new(length: usize, height: usize) -> Self {
+    fn new(length: usize, height: usize, seed: u32) -> Self {
         Chunk {
             blocks: Array3::from_elem((length, height, length), BlockType::Air),
+            scale: 32.,
+            amp: 32.,
+            noise: Perlin::new(seed),
             length,
             height,
+        }
+    }
+
+    fn generate(&mut self) {
+        for x in 0..self.length {
+            for z in 0..self.length {
+                let tall = self
+                    .noise
+                    .get([x as f64 / self.scale, z as f64 / self.scale]);
+                let terrain_height = (tall * self.amp as f64 + (self.height / 2) as f64) as i32;
+
+                for y in 0..self.height {
+                    if y < terrain_height as usize {
+                        self.set(x, y, z, BlockType::Stone);
+                    } else if y == terrain_height as usize {
+                        self.set(x, y, z, BlockType::Grass);
+                    } else {
+                    }
+                }
+            }
         }
     }
 
@@ -76,7 +103,8 @@ fn scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mut chunk = Chunk::new(16, 64);
+    let mut chunk = Chunk::new(16, 64, 42);
+    chunk.generate();
     draw_chunk(commands, meshes, materials, &chunk);
 }
 
@@ -87,11 +115,21 @@ fn draw_chunk(
     chunk: &Chunk,
 ) {
     for ((x, y, z), &block) in chunk.blocks.indexed_iter() {
-        commands.spawn((
-            Mesh3d(meshes.add(Cuboid::default())),
-            MeshMaterial3d(materials.add(Color::srgb_u8(0, 255, 0))),
-            Transform::from_xyz(x as f32, y as f32, z as f32),
-        ));
+        if block == BlockType::Grass {
+            commands.spawn((
+                Mesh3d(meshes.add(Cuboid::default())),
+                MeshMaterial3d(materials.add(Color::srgb_u8(0, 255, 0))),
+                Transform::from_xyz(x as f32, y as f32, z as f32),
+            ));
+        }
+        if block == BlockType::Stone {
+            commands.spawn((
+                Mesh3d(meshes.add(Cuboid::default())),
+                MeshMaterial3d(materials.add(Color::srgb_u8(115, 110, 115))),
+                Transform::from_xyz(x as f32, y as f32, z as f32),
+            ));
+        }
+        println!("{:?}", block);
     }
 }
 
