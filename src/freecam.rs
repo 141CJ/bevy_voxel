@@ -18,7 +18,7 @@ impl Plugin for FreeCam {
 fn spawn_camera(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
-        Transform::from_xyz(0., 1., 0.).looking_to(Vec3::X, Vec3::Y),
+        Transform::from_xyz(0., 90., 0.).looking_to(Vec3::X, Vec3::Y),
         FreeCamera {
             sensitivity: 0.2,
             friction: 25.,
