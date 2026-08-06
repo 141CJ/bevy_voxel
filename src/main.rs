@@ -91,6 +91,11 @@ fn main() {
                 ..default()
             },
         })
+        .insert_resource(GlobalAmbientLight {
+            color: Color::WHITE,
+            brightness: 500.,
+            ..default()
+        })
         .add_plugins(FreeCameraPlugin)
         .add_systems(Startup, scene)
         .add_systems(Update, overlay_config)
@@ -103,6 +108,20 @@ fn scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    commands.spawn((
+        DirectionalLight {
+            illuminance: light_consts::lux::AMBIENT_DAYLIGHT,
+            shadow_maps_enabled: true,
+
+            ..default()
+        },
+        Transform::from_rotation(Quat::from_euler(
+            EulerRot::ZYX,
+            0.0,
+            1.0,
+            -std::f32::consts::FRAC_PI_4,
+        )),
+    ));
     let mut chunk = Chunk::new(16, 64, 42);
     chunk.generate();
     draw_chunk(commands, meshes, materials, &chunk);
