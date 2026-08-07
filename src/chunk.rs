@@ -110,7 +110,6 @@ pub fn render_chunk(
                     Transform::from_xyz(x as f32, y as f32, z as f32),
                 ));
             }
-            println!("{:?}", block);
         }
         commands.entity(entity).insert(ChunkRendered);
     }
