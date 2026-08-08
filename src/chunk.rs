@@ -27,6 +27,8 @@ enum BlockType {
 pub struct Chunk {
     length: usize,
     height: usize,
+    pos_x: usize,
+    pos_z: usize,
     blocks: Array3<BlockType>,
     scale: f64, // Noise scale
     amp: f64,   // Noise amplitude
@@ -40,23 +42,28 @@ pub struct ChunkGenerated;
 pub struct ChunkRendered;
 
 impl Chunk {
-    pub fn new(length: usize, height: usize, seed: u32) -> Self {
+    pub fn new(length: usize, height: usize, x: usize, z: usize, seed: u32) -> Self {
         Chunk {
             blocks: Array3::from_elem((length, height, length), BlockType::Air),
-            scale: 32.,
+            scale: 100.,
             amp: 32.,
             noise: Perlin::new(seed),
             length,
             height,
+            pos_x: x * length,
+            pos_z: z * length,
         }
     }
 
     fn generate(&mut self) {
         for x in 0..self.length {
             for z in 0..self.length {
+                let chunk_x = x + self.pos_x;
+                let chunk_z = z + self.pos_z;
+
                 let tall = self
                     .noise
-                    .get([x as f64 / self.scale, z as f64 / self.scale]);
+                    .get([chunk_x as f64 / self.scale, chunk_z as f64 / self.scale]);
                 let terrain_height = (tall * self.amp as f64 + (self.height / 2) as f64) as i32;
 
                 for y in 0..self.height {
@@ -100,14 +107,22 @@ pub fn render_chunk(
                 commands.spawn((
                     Mesh3d(meshes.add(Cuboid::default())),
                     MeshMaterial3d(materials.add(Color::srgb_u8(0, 255, 0))),
-                    Transform::from_xyz(x as f32, y as f32, z as f32),
+                    Transform::from_xyz(
+                        x as f32 + chunk.pos_x as f32,
+                        y as f32,
+                        z as f32 + chunk.pos_z as f32,
+                    ),
                 ));
             }
             if block == BlockType::Stone {
                 commands.spawn((
                     Mesh3d(meshes.add(Cuboid::default())),
                     MeshMaterial3d(materials.add(Color::srgb_u8(115, 110, 115))),
-                    Transform::from_xyz(x as f32, y as f32, z as f32),
+                    Transform::from_xyz(
+                        x as f32 + chunk.pos_x as f32,
+                        y as f32,
+                        z as f32 + chunk.pos_z as f32,
+                    ),
                 ));
             }
         }

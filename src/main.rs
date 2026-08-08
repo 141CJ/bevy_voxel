@@ -66,7 +66,14 @@ fn scene(mut commands: Commands) {
             -std::f32::consts::FRAC_PI_4,
         )),
     ));
-    commands.spawn(Chunk::new(16, 64, 42));
+    // commands.spawn(Chunk::new(16, 64, 0, 0, 42));
+    // commands.spawn(Chunk::new(16, 64, 0, 1, 42));
+
+    for x in 0..=5 {
+        for z in 0..=5 {
+            commands.spawn(Chunk::new(16, 64, x, z, 42));
+        }
+    }
     commands.spawn(ChunkGenerated);
 }
 
