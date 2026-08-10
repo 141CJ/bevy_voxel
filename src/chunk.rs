@@ -9,9 +9,10 @@ use bevy::{
         system::{Commands, Query, ResMut},
     },
     math::primitives::Cuboid,
-    mesh::{Mesh, Mesh3d},
+    mesh::{Indices, Mesh, Mesh3d, PrimitiveTopology},
     pbr::{MeshMaterial3d, StandardMaterial},
     transform::components::Transform,
+    utils::default,
 };
 use ndarray::Array3;
 use noise::{NoiseFn, Perlin};
@@ -102,30 +103,63 @@ pub fn render_chunk(
     query: Query<(Entity, &Chunk), Without<ChunkRendered>>,
 ) {
     for (entity, chunk) in query {
+        let mut vertices: Vec<[f32; 3]> = Vec::new();
+        let mut indices: Vec<u32> = Vec::new();
+        let mut mesh = Mesh::new(
+            PrimitiveTopology::TriangleList,
+            bevy::asset::RenderAssetUsages::default(),
+        );
         for ((x, y, z), &block) in chunk.blocks.indexed_iter() {
-            if block == BlockType::Grass {
-                commands.spawn((
-                    Mesh3d(meshes.add(Cuboid::default())),
-                    MeshMaterial3d(materials.add(Color::srgb_u8(0, 255, 0))),
-                    Transform::from_xyz(
-                        x as f32 + chunk.pos_x as f32,
-                        y as f32,
-                        z as f32 + chunk.pos_z as f32,
-                    ),
-                ));
+            if block == BlockType::Air {
+                continue;
             }
-            if block == BlockType::Stone {
-                commands.spawn((
-                    Mesh3d(meshes.add(Cuboid::default())),
-                    MeshMaterial3d(materials.add(Color::srgb_u8(115, 110, 115))),
-                    Transform::from_xyz(
-                        x as f32 + chunk.pos_x as f32,
-                        y as f32,
-                        z as f32 + chunk.pos_z as f32,
-                    ),
-                ));
+            let x = x as f32 + chunk.pos_x as f32;
+            let y = y as f32;
+            let z = z as f32 + chunk.pos_z as f32;
+
+            let start = vertices.len() as u32;
+
+            vertices.extend_from_slice(&[
+                [x, y, z],                // 0 bottom back left
+                [x + 1., y, z],           // 1 bottom back right
+                [x, y, z + 1.],           // 2 bottom front left
+                [x + 1., y, z + 1.],      // 3 bottom front right
+                [x, y + 1., z],           // 4 top back left
+                [x + 1., y + 1., z],      // 5 top back right
+                [x, y + 1., z + 1.],      // 6 top front left
+                [x + 1., y + 1., z + 1.], // 7 top front right
+            ]);
+            let faces = [
+                [0, 1, 3, 2], // Bottom
+                [4, 6, 7, 5], // Top
+                [0, 2, 6, 4], // Left
+                [1, 5, 7, 3], // Right
+                [2, 3, 7, 6], // Front
+                [0, 4, 5, 1], // Back
+            ];
+
+            for face in faces {
+                indices.extend_from_slice(&[
+                    start + face[0],
+                    start + face[1],
+                    start + face[2],
+                    start + face[0],
+                    start + face[2],
+                    start + face[3],
+                ]);
             }
         }
-        commands.entity(entity).insert(ChunkRendered);
+
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+        mesh.insert_indices(Indices::U32(indices));
+        let material = match chunk.blocks.iter().find(|&&block| block != BlockType::Air) {
+            Some(BlockType::Grass) => StandardMaterial { ..default() },
+            _ => StandardMaterial { ..default() },
+        };
+        commands.entity(entity).insert((
+            Mesh3d(meshes.add(mesh)),
+            MeshMaterial3d(materials.add(material)),
+            ChunkRendered,
+        ));
     }
 }
