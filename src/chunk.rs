@@ -109,6 +109,7 @@ pub fn render_chunk(
             PrimitiveTopology::TriangleList,
             bevy::asset::RenderAssetUsages::default(),
         );
+        let mut colors: Vec<[f32; 4]> = Vec::new();
         for ((x, y, z), &block) in chunk.blocks.indexed_iter() {
             if block == BlockType::Air {
                 continue;
@@ -148,9 +149,19 @@ pub fn render_chunk(
                     start + face[3],
                 ]);
             }
+
+            let color = match block {
+                BlockType::Grass => [0., 1., 0., 1.],
+                BlockType::Stone => [115. / 255., 110. / 255., 115. / 255., 1.],
+                BlockType::Air => [1., 1., 1., 1.],
+            };
+            for _ in 0..8 {
+                colors.push(color);
+            }
         }
 
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
         mesh.insert_indices(Indices::U32(indices));
         let material = match chunk.blocks.iter().find(|&&block| block != BlockType::Air) {
             Some(BlockType::Grass) => StandardMaterial { ..default() },
