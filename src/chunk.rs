@@ -80,6 +80,9 @@ impl Chunk {
     }
 
     fn get(&self, x: usize, y: usize, z: usize) -> Option<&BlockType> {
+        let x = x.saturating_sub(self.pos_x);
+        let z = z.saturating_sub(self.pos_z);
+
         self.blocks.get((x, y, z))
     }
 
@@ -139,7 +142,29 @@ pub fn render_chunk(
                 [0, 4, 5, 1], // Back
             ];
 
-            for face in faces {
+            let (x, y, z) = (x as usize, y as usize, z as usize);
+            let block_below = chunk.get(x, y.saturating_sub(1), z);
+            let block_above = chunk.get(x, y + 1, z);
+            let block_left = chunk.get(x.saturating_sub(1), y, z);
+            let block_right = chunk.get(x + 1, y, z);
+            let block_front = chunk.get(x, y, z + 1);
+            let block_back = chunk.get(x, y, z.saturating_sub(1));
+
+            for (index, face) in faces.iter().enumerate() {
+                let skip_face = match index {
+                    0 if block_below != Some(&BlockType::Air) => true,
+                    1 if block_above != Some(&BlockType::Air) => true,
+                    2 if block_left != Some(&BlockType::Air) => true,
+                    3 if block_right != Some(&BlockType::Air) => true,
+                    4 if block_front != Some(&BlockType::Air) => true,
+                    5 if block_back != Some(&BlockType::Air) => true,
+                    _ => false,
+                };
+
+                if skip_face {
+                    continue;
+                }
+
                 indices.extend_from_slice(&[
                     start + face[0],
                     start + face[1],
