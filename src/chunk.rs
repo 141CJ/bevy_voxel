@@ -79,11 +79,10 @@ impl Chunk {
         }
     }
 
-    fn get(&self, x: usize, y: usize, z: usize) -> Option<&BlockType> {
-        let x = x.saturating_sub(self.pos_x);
-        let z = z.saturating_sub(self.pos_z);
-
-        self.blocks.get((x, y, z))
+    fn get(&self, x: i32, y: i32, z: i32) -> Option<&BlockType> {
+        let x = x - self.pos_x as i32;
+        let z = z - self.pos_z as i32;
+        self.blocks.get((x as usize, y as usize, z as usize))
     }
 
     fn set(&mut self, x: usize, y: usize, z: usize, block: BlockType) {
@@ -142,13 +141,13 @@ pub fn render_chunk(
                 [0, 4, 5, 1], // Back
             ];
 
-            let (x, y, z) = (x as usize, y as usize, z as usize);
-            let block_below = chunk.get(x, y.saturating_sub(1), z);
+            let (x, y, z) = (x as i32, y as i32, z as i32);
+            let block_below = chunk.get(x, y - 1, z);
             let block_above = chunk.get(x, y + 1, z);
-            let block_left = chunk.get(x.saturating_sub(1), y, z);
+            let block_left = chunk.get(x - 1, y, z);
             let block_right = chunk.get(x + 1, y, z);
             let block_front = chunk.get(x, y, z + 1);
-            let block_back = chunk.get(x, y, z.saturating_sub(1));
+            let block_back = chunk.get(x, y, z - 1);
 
             for (index, face) in faces.iter().enumerate() {
                 let skip_face = match index {
