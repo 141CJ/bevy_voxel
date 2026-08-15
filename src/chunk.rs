@@ -82,7 +82,17 @@ impl Chunk {
     fn get(&self, x: i32, y: i32, z: i32) -> Option<&BlockType> {
         let x = x - self.pos_x as i32;
         let z = z - self.pos_z as i32;
-        self.blocks.get((x as usize, y as usize, z as usize))
+        if x < 0
+            || x >= self.length as i32
+            || y < 0
+            || y >= self.height as i32
+            || z < 0
+            || z >= self.length as i32
+        {
+            Some(&BlockType::Air)
+        } else {
+            self.blocks.get((x as usize, y as usize, z as usize))
+        }
     }
 
     fn set(&mut self, x: usize, y: usize, z: usize, block: BlockType) {
