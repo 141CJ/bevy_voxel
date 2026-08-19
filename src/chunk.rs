@@ -210,6 +210,8 @@ pub fn render_chunk(
             },
             _ => StandardMaterial { ..default() },
         };
+        mesh.duplicate_vertices();
+        mesh.compute_flat_normals();
         commands.entity(entity).insert((
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(materials.add(material)),
