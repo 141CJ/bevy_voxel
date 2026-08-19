@@ -198,7 +198,16 @@ pub fn render_chunk(
         mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
         mesh.insert_indices(Indices::U32(indices));
         let material = match chunk.blocks.iter().find(|&&block| block != BlockType::Air) {
-            Some(BlockType::Grass) => StandardMaterial { ..default() },
+            Some(BlockType::Grass) => StandardMaterial {
+                metallic: 0.,
+                perceptual_roughness: 0.8,
+                ..default()
+            },
+            Some(BlockType::Stone) => StandardMaterial {
+                metallic: 0.,
+                perceptual_roughness: 0.8,
+                ..default()
+            },
             _ => StandardMaterial { ..default() },
         };
         commands.entity(entity).insert((
